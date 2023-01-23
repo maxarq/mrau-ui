@@ -39,7 +39,7 @@ dfhack.onStateChange[GLOBAL_KEY] = function(sc)
     
     if persist.GlobalTable.reports and reports ~= nil then reports = json.decode(persist.GlobalTable.reports) else reports = {} end
 
-    view = view and view:raise() or CPScreen{}:show() 
+    --view = view and view:raise() or CPScreen{}:show() 
 end
 
 
