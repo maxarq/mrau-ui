@@ -2262,7 +2262,7 @@ function MRAUoverlay:onInput(keys)
   if keys._MOUSE_L_DOWN then
       local hasMouse = self:getMousePos()
       if hasMouse then
-          print("clicked")
+          --print("clicked")
           MRAUscreen{}:show()
           --if MRAUscreen.visible then MRAUscreen.visible = false else MRAUscreen.visible = true end
       end
