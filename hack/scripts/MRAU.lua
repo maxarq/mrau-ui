@@ -1,5 +1,49 @@
-GAMEON = (dfhack.isWorldLoaded() and dfhack.isMapLoaded())
-if not GAMEON then goto ENDOFSCRIPT end
+
+--@enable = true
+--@module = true
+
+local eventful = require('plugins.eventful')
+local dwarfmode = require('gui.dwarfmode')
+local persist = require('persist-table')
+local json = require('json')
+local dialog = require('gui.dialogs')
+local gui = require('gui')
+local widgets = require('gui.widgets')
+local to_pen = dfhack.pen.parse
+
+enabled = enabled or false
+function isEnabled()
+    return enabled
+end
+
+-- (function definitions...)
+
+if dfhack_flags.enable then
+    if dfhack_flags.enable_state then
+        start()
+        enabled = true
+    else
+        stop()
+        enabled = false
+    end
+end
+
+
+local GLOBAL_KEY = 'MRAU'
+
+dfhack.onStateChange[GLOBAL_KEY] = function(sc)
+    if sc ~= SC_MAP_LOADED or df.global.gamemode ~= df.game_mode.DWARF then
+        if reports ~= nil then persist.GlobalTable.reports = json.encode(reports) turnOffEvents() end
+        
+        return
+    end
+    --if not GAMEON then goto ENDOFSCRIPT end
+    if persist.GlobalTable.reports then reports = json.decode(persist.GlobalTable.reports) else reports = {} end
+    view = view and view:raise() or CPScreen{}:show()
+end
+
+
+
 
 
 --[[
@@ -131,10 +175,7 @@ CPScreen:ZScreen {
 
 --SOME GLOBAL TABLES
 ------------------------------------------------------------------------
-local eventful = require('plugins.eventful')
-local dwarfmode = require('gui.dwarfmode')
-local persist = require('persist-table')
-local json = require('json')
+
 
 local EVENTS_COLORS = {
   [104] = COLOR_YELLOW, --cancelation
@@ -1200,10 +1241,7 @@ turnOnEvents()--thats just for turning events on
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------
-local dialog = require('gui.dialogs')
-local gui = require('gui')
-local widgets = require('gui.widgets')
-local to_pen = dfhack.pen.parse
+
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 --REPORTS
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -1401,7 +1439,7 @@ end
 
 --REPORT LIST
 ------------------------------------------------------------------------------------------------------------------------------------------------------
-if persist.GlobalTable.reports then reports = json.decode(persist.GlobalTable.reports) else reports = {} end
+
 units_ids_GLOBAL = {}
 positions_GLOBAL = {}
 scroll_Pos_GLOBAL = 0
@@ -2213,7 +2251,6 @@ function CPScreen:init()
     }
 end
 
-local dscreen = dfhack.screen
 WINDOWSIZE_GLOBAL = {}
 function CPScreen:Minimalize(keys)
   if keys == nil then
@@ -2245,7 +2282,7 @@ function CPScreen:Minimalize(keys)
   if keys._MOUSE_R_DOWN or keys.LEAVESCREEN then
     FOLLOWUNIT = nil
       if y ~= nil then --pozwala wylaczyc jak na ikonie
-        return CPScreen.super.onInput(self, keys) 
+        return true--CPScreen.super.onInput(self, keys) 
 
       elseif doesLockMain then
         cursorPos = nil --wylacza kursor
@@ -2319,7 +2356,7 @@ function CPScreen:onRenderFrame(dc, rect)
     dwarfmode.renderMapOverlay(get_overlay_pen, self.overlay_bounds)
 end
 
-view = view and view:raise() or CPScreen{}:show()
+
 
 --DRAWING FUNCTIONS
 --------------------------------------------------------------------------------------------------------
