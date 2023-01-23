@@ -2189,11 +2189,11 @@ function MRAU_UI:onRenderFrame(dc, rect)
 end
 
 function MRAU_UI:onClickQuit()
-  WINDOWSIZE_GLOBAL = {h = self.parent_view.subviews.MainWindow.frame.h, w =self.parent_view.subviews.MainWindow.frame.w}
-  self.parent_view.subviews.MainWindow.frame.h = 0
-  self.parent_view.subviews.MainWindow.frame.w = 0
-  self:updateLayout()
-  self.parent_view.subviews.MainWindow.visible = false 
+  --WINDOWSIZE_GLOBAL = {h = self.parent_view.subviews.MainWindow.frame.h, w =self.parent_view.subviews.MainWindow.frame.w}
+  --self.parent_view.subviews.MainWindow.frame.h = 0
+  --self.parent_view.subviews.MainWindow.frame.w = 0
+  --self:updateLayout()
+  --self.parent_view.subviews.MainWindow.visible = false 
   --if reports then persist.GlobalTable.reports = json.encode(reports) end
   --turnOffEvents()
   --self.parent_view:dismiss()
