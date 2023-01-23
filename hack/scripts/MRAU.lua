@@ -1,6 +1,5 @@
-
+--@ module = true
 --@enable = true
---@module = true
 
 local eventful = require('plugins.eventful')
 local dwarfmode = require('gui.dwarfmode')
@@ -10,6 +9,7 @@ local dialog = require('gui.dialogs')
 local gui = require('gui')
 local widgets = require('gui.widgets')
 local to_pen = dfhack.pen.parse
+local overlay = require('plugins.overlay')
 
 enabled = enabled or false
 function isEnabled()
@@ -32,17 +32,15 @@ end
 local GLOBAL_KEY = 'MRAU'
 
 dfhack.onStateChange[GLOBAL_KEY] = function(sc)
-    if sc ~= SC_MAP_LOADED or df.global.gamemode ~= df.game_mode.DWARF then
-        if reports ~= nil then persist.GlobalTable.reports = json.encode(reports) turnOffEvents() end
-        
+    if sc ~= SC_MAP_LOADED or df.global.gamemode ~= df.game_mode.DWARF or not dfhack.isMapLoaded() then
+        --if reports ~= nil and reports ~= {} then persist.GlobalTable.reports = json.encode(reports) end
         return
     end
-    --if not GAMEON then goto ENDOFSCRIPT end
-    if persist.GlobalTable.reports then reports = json.decode(persist.GlobalTable.reports) else reports = {} end
-    view = view and view:raise() or CPScreen{}:show()
+    
+    if persist.GlobalTable.reports and reports ~= nil then reports = json.decode(persist.GlobalTable.reports) else reports = {} end
+
+    view = view and view:raise() or CPScreen{}:show() 
 end
-
-
 
 
 
@@ -1448,6 +1446,7 @@ function ReportsPanel:render_reports(dc) --uses EVENT_CATEGORY, EVENTS_TYPES yea
   local start = self.frame_body.height - 3
   --FORMATING
   blocks = {}
+  if reports == nil or reports == {} then return nil end
   for i,report in pairs(reports) do
     lines = {}
     units_ids = {}
@@ -2021,6 +2020,7 @@ MRAU_UI.ATTRS {
   resizable = true,
   resize_min={w = 80, h = 10},
   view_id='MainWindow',
+  visible = true,
 }
 
 function MRAU_UI:init(info)
@@ -2208,27 +2208,27 @@ end
 --MAIN SCREEN
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-CPScreen = defclass(CPScreen, gui.ZScreen)
-CPScreen.ATTRS {
-    focus_path='MRAU_UI',
+MRAUscreen = defclass(MRAUscreen, gui.ZScreen)
+MRAUscreen.ATTRS {
+  focus_path='MRAU_UI',
+}
+function MRAUscreen:init()
+  self:addviews{
+      MRAU_UI{} --MAIN WINDOW
+  }
+end
+
+MRAUoverlay = defclass(MRAUoverlay, overlay.OverlayWidget)
+MRAUoverlay.ATTRS {
+    default_pos={x=0,y=0},
+    hotspot=true,
+    overlay_onupdate_max_freq_seconds=0,
+    viewscreens='dwarfmode',
+    frame={w=4, h=3}
 }
 
-function CPScreen:init()
+function MRAUoverlay:init()
     self:addviews{
-        MRAU_UI{ --MAIN WINDOW
-      },
-      widgets.Panel{
-          view_id='icon',
-          frame={b = 0, l = 32, w = 4, h = 3},
-          
-          frame_background = to_pen{fg=COLOR_MAGENTA, bg=COLOR_MAGENTA},
-          resizable = false,
-          lockable = false,
-          --frame_style=gui.BOUNDARY_FRAME,
-      }
-    }
-
-    self.subviews.icon:addviews{
       widgets.Label{
         view_id='iconTOP',
         visible = true,
@@ -2247,105 +2247,46 @@ function CPScreen:init()
         visible = true,
         frame={t=2, l=0, w=4},
         text="\192\196\196\217",
-      }
+      },
     }
+    
+end
+
+--function MRAUoverlay:overlay_onupdate()
+  
+--end
+function MRAUoverlay:overlay_trigger()
+end
+
+function MRAUoverlay:onInput(keys)
+  if keys._MOUSE_L_DOWN then
+      local hasMouse = self:getMousePos()
+      if hasMouse then
+          print("clicked")
+          MRAUscreen{}:show()
+          --if MRAUscreen.visible then MRAUscreen.visible = false else MRAUscreen.visible = true end
+      end
+      return true
+  end
+
+  if keys._MOUSE_R_DOWN then
+    cursorPos = nil
+    FOLLOWUNIT = nil
+    if doesLockMain then return true end
+  end
 end
 
 WINDOWSIZE_GLOBAL = {}
-function CPScreen:Minimalize(keys)
-  if keys == nil then
-    keys = {_MOUSE_L_DOWN = true,_MOUSE_R_DOWN = false}
-    return ture
-  end
-  
-  x, y = self.subviews.icon:getMousePos()
 
-  if y ~= nil and keys._MOUSE_L_DOWN then --tutaj jest ktore klawisze sa blokowane
-    if not self.subviews.MainWindow.visible then
-      self.subviews.MainWindow.frame.h = WINDOWSIZE_GLOBAL.h
-      self.subviews.MainWindow.frame.w = WINDOWSIZE_GLOBAL.w
-      self:updateLayout()
-      self.subviews.MainWindow.visible = true
-      
-
-    else
-      WINDOWSIZE_GLOBAL = {h = self.subviews.MainWindow.frame.h, w =self.subviews.MainWindow.frame.w}
-      self.subviews.MainWindow.frame.h = 0
-      self.subviews.MainWindow.frame.w = 0
-      self:updateLayout()
-      self.subviews.MainWindow.visible = false
-      
-    end
-    return true
-  end
-
-  if keys._MOUSE_R_DOWN or keys.LEAVESCREEN then
-    FOLLOWUNIT = nil
-      if y ~= nil then --pozwala wylaczyc jak na ikonie
-        return true--CPScreen.super.onInput(self, keys) 
-
-      elseif doesLockMain then
-        cursorPos = nil --wylacza kursor
-        return true --blokuje chowanie panelu jak lock jest wlaczony
-
-      elseif self.subviews.MainWindow.visible then --Chowa panel
-        cursorPos = nil
-        WINDOWSIZE_GLOBAL = {h = self.subviews.MainWindow.frame.h, w =self.subviews.MainWindow.frame.w}
-        self.subviews.MainWindow.frame.h = 0
-        self.subviews.MainWindow.frame.w = 0
-        self:updateLayout()
-        self.subviews.MainWindow.visible = false 
-        return true--blokuje wylaczanie skrypru jak nie na ikoniesetText
-
-      else
-        return true
-
-      end
-  end
-
-  return self.super.onInput(self, keys)
-end
-
-function CPScreen:onInput(keys)
-   
-  --printall(self.subviews.icon)
-  --printall(self.subviews.UnitSubPanels.subviews.SearchField)
-  
-
-  if self.subviews.MainWindow.visible then
-    self.subviews.icon.subviews.iconTOP.text_pen = to_pen(COLOR_WHITE)
-    self.subviews.icon.subviews.iconMID.text_pen = to_pen(COLOR_WHITE)
-    self.subviews.icon.subviews.iconBOT.text_pen = to_pen(COLOR_WHITE)
-
-   self.subviews.icon.subviews.iconTOP:setText("\218\196\196\191")
-   self.subviews.icon.subviews.iconMID:setText("\179M\2\179")
-   self.subviews.icon.subviews.iconBOT:setText("\192\196\196\217")
-  else
-    self.subviews.icon.subviews.iconTOP.text_pen = to_pen(COLOR_GREY)
-    self.subviews.icon.subviews.iconMID.text_pen = to_pen(COLOR_GREY)
-    self.subviews.icon.subviews.iconBOT.text_pen = to_pen(COLOR_GREY)
-
-    self.subviews.icon.subviews.iconTOP:setText("\218\196\196\191")
-    self.subviews.icon.subviews.iconMID:setText("\179m\1\179")
-    self.subviews.icon.subviews.iconBOT:setText("\192\196\196\217")
-  end
-
-  self.subviews.icon:updateLayout()
-  --self:updateLayout()
-
-  return self:Minimalize(keys)
-end
-
-
-function CPScreen:onDismiss()
+function MRAUoverlay:onDismiss()
     if reports then persist.GlobalTable.reports = json.encode(reports) end
-    turnOffEvents()
+    --turnOffEvents()
     view = nil
 end
 
 local BOX_PEN = to_pen{ch='X', fg=COLOR_GREEN,tile=dfhack.screen.findGraphicsTile('CURSORS', 0, 0)}
 cursorPos = nil --for displaying unit position.
-function CPScreen:onRenderFrame(dc, rect)
+function MRAUoverlay:onRenderFrame(dc, rect)
     local function get_overlay_pen(pos)
       if cursorPos ~= nil then
         if cursorPos.x == pos.x and cursorPos.y == pos.y and cursorPos.z == pos.z then
@@ -2356,7 +2297,7 @@ function CPScreen:onRenderFrame(dc, rect)
     dwarfmode.renderMapOverlay(get_overlay_pen, self.overlay_bounds)
 end
 
-
+OVERLAY_WIDGETS = {overlay=MRAUoverlay}
 
 --DRAWING FUNCTIONS
 --------------------------------------------------------------------------------------------------------
@@ -2441,6 +2382,7 @@ function paint_horizontal_border(dc,spaces,rect,pens) --dc or rect it depends is
   dfhack.screen.paintTile(pens.Split.left, x1 + spaces.l + rect.x1, y)
   dfhack.screen.paintTile(pens.Split.right, x2 - spaces.r, y)
 end
+
 
 --function getAppropriateCornerTile(x,y)
 --
