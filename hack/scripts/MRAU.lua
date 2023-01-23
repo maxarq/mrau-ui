@@ -1688,7 +1688,7 @@ function UnitsDetail:init(info)
       widgets.Label{
         view_id='GoalInfoLabel',
         visible = true,
-        frame={t=1, l=0, w = 15},
+        frame={t=1, l=0},
         text={
             {text='job, health, military, isnoble'},
         },
