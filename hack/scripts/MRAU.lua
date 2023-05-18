@@ -2264,9 +2264,9 @@ function MRAUoverlay:onInput(keys)
       if hasMouse then
           --print("clicked")
           MRAUscreen{}:show()
+      return true
           --if MRAUscreen.visible then MRAUscreen.visible = false else MRAUscreen.visible = true end
       end
-      return true
   end
 
   if keys._MOUSE_R_DOWN then
